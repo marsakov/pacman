@@ -1,30 +1,30 @@
 #include "Entity.hpp"
-#include <cmath>
 #include <ncurses.h>
 
-Entity *player = new Entity(1, 1, 3);
-Entity *enemy1 = new Entity(44, 15, 3);
-Entity *enemy2 = new Entity(1, 15, 3);
-int width = 17;
-int height = 47;
+Entity *player = new Entity(25, 1);
+Entity *enemies[4] = {new Entity(44, 15), new Entity(1, 15), new Entity(1, 7), new Entity(44, 7)};
+int amountEnemies = 4;
+int width = 47;
+int height = 17;
+int stars = 0;
 
 std::string map[] = {
 "||||||||||||||||||||||||||||||||||||||||||||||",
-"|                                            |",
+"| *    *    *    *          *    *    *    * |",
 "| |||||||||| | |||||||||||||||| | |||||||||| |",
-"|            |        ||        |            |",
+"| *    *    *    *    ||    *    *    *    * |",
 "|||||||||||| |||||||| || |||||||| ||||||||||||",
-"           | |                  | |           ",
+"           |*    *   *  *   *    *|           ",
 "|||||||||||| | | |||||  ||||| | | ||||||||||||",
-"|              | |          | |              |",
-"|  ||||||||| | | |    **    | | | |||||||||  |",
-"|            | | |||||||||||| | |            |",
-"|||||||||||||| |              | ||||||||||||||",
-"|                ||||||||||||                |",
-"| ||||||||   |   |          |   |   |||||||| |",
-"|        | | | | | |||||||| | | | | |        |",
+"| *    *    *  | | *      * | |  *    *    * |",
+"|  ||||||||| | | |   [__]   | | | |||||||||  |",
+"| *    *    *  | |||||||||||| |  *    *    * |",
+"|||||||||||||| | *   *  *   * | ||||||||||||||",
+"| *    *         ||||||||||||         *    * |",
+"| ||||||||   |*    *      *    *|   |||||||| |",
+"| *    *   | | |   ||||||||   | | |   *    * |",
 "|||||||| | | | | |    ||    | | | | | ||||||||",
-"|            |                  |            |",
+"| *    *    *|  *   *    *   *  |*    *    * |",
 "||||||||||||||||||||||||||||||||||||||||||||||",
 };
 
@@ -34,6 +34,7 @@ void	init( void ) {
 	if(has_colors() == FALSE)
 	{	endwin();
 		printf("Your terminal does not support color\n");
+		curs_set(1);
 		exit(1);
 	}
 	start_color();
@@ -58,75 +59,92 @@ void	init( void ) {
 	nodelay(stdscr, true);
 }
 
+void	exitFunc(int wonOrLose) {
+	int c = 0;
+
+	if (wonOrLose == 1)
+	{
+		attron(COLOR_PAIR(1));
+		mvprintw(LINES / 2, COLS / 2 - 10, "YOU WON [press ENTER]");
+		attroff(COLOR_PAIR(1));
+	}
+	else
+	{
+		attron(COLOR_PAIR(4));
+		mvprintw(LINES / 2, COLS / 2 - 10, "YOU LOSE [press ENTER]", stars);
+		attron(COLOR_PAIR(4));
+	}
+	while (c != '\n')
+		c = getch();
+	curs_set(1);
+	endwin();
+	exit(0);
+}
+
 void	movePlayer( void ) {
 	int c;
 
-	if ((c = getch()) != 'q')
+	if ((c = getch()) != 'q' && c != 'Q')
 	{
 		map[player->getY()][player->getX()] = ' ';
-		if (c == KEY_LEFT && player->getX() > 0 && map[player->getY()][player->getX() - 1] != '|')
-			player->setX(player->getX() - 1);
-		if (c == KEY_RIGHT && player->getX() < 46 && map[player->getY()][player->getX() + 1] != '|')
-			player->setX(player->getX() + 1);
-		if (c == KEY_UP && player->getY() > 1 && map[player->getY() - 1][player->getX()] != '|')
-			player->setY(player->getY() - 1);
-		if (c == KEY_DOWN && player->getY() < 17 && map[player->getY() + 1][player->getX()] != '|')
-			player->setY(player->getY() + 1);
-		if (map[player->getY()][player->getX()] == '*')
+		if (c == KEY_LEFT)
+			player->moveLeft(map, '|');
+		if (c == KEY_RIGHT)
+			player->moveRight(map, '|', width);
+		if (c == KEY_UP)
+			player->moveUp(map, '|');
+		if (c == KEY_DOWN)
+			player->moveDown(map, '|', height);
+		if (map[player->getY()][player->getX()] == '_' || map[player->getY()][player->getX()] == 'o')
 		{
-			c = 0;
-			mvprintw(LINES / 2, COLS / 2 - 10, "YOU WON [press ENTER]");
-			while (c != '\n')
-				c = getch();
-			endwin();
-			exit(0);
+			if (map[player->getY()][player->getX()] == '_')
+				exitFunc(1);
+			else
+				exitFunc(0);
 		}
+		if (map[player->getY()][player->getX()] == '*')
+			stars++;
 		map[player->getY()][player->getX()] = '@';
 	}
 	else
 	{
+		curs_set(1);
 		endwin();
 		exit(0);
 	}
 }
 
 void	moveEnemies( void ) {
-	
-	map[enemy1->getY()][enemy1->getX()] = ' ';
-	map[enemy2->getY()][enemy2->getX()] = ' ';
 
-	if (abs(player->getX() - enemy1->getX()) > abs(player->getY() - enemy1->getY()))
-	{
-		if (player->getX() > enemy1->getX() && map[enemy1->getY()][enemy1->getX() + 1] == ' ')
-			enemy1->setX(enemy1->getX() + 1);
-		else if (player->getX() < enemy1->getX() && map[enemy1->getY()][enemy1->getX() - 1] == ' ')
-			enemy1->setX(enemy1->getX() - 1);
-	}
-	else if (abs(player->getX() - enemy1->getX()) < abs(player->getY() - enemy1->getY()))
-	{
-		if (player->getY() > enemy1->getY() && map[enemy1->getY() + 1][enemy1->getX()] == ' ')
-			enemy1->setY(enemy1->getY() + 1);
-		else if (player->getY() < enemy1->getY() && map[enemy1->getY() - 1][enemy1->getX()] == ' ')
-			enemy1->setY(enemy1->getY() - 1);
-	}
+	for (int i = 0; i < amountEnemies; i++) {
+		map[enemies[i]->getY()][enemies[i]->getX()] = ' ';
+		switch (enemies[i]->getDirection()) {
+			case 'E':
+				if (!enemies[i]->moveRight(map, '|', width))
+					enemies[i]->chooseDirection(player, map, '|', width, height);
+				break;
+			case 'W':
+				if (!enemies[i]->moveLeft(map, '|'))
+					enemies[i]->chooseDirection(player, map, '|', width, height);
+				break;
+			case 'N':
+				if (!enemies[i]->moveUp(map, '|'))
+					enemies[i]->chooseDirection(player, map, '|', width, height);
+				break;
+			case 'S':
+				if (!enemies[i]->moveDown(map, '|', height))
+					enemies[i]->chooseDirection(player, map, '|', width, height);
+		}
 
-	if (abs(player->getX() - enemy2->getX()) > abs(player->getY() - enemy2->getY()))
-	{
-		if (player->getX() > enemy2->getX() && map[enemy2->getY()][enemy2->getX() + 1] == ' ')
-			enemy2->setX(enemy2->getX() + 1);
-		else if (player->getX() < enemy2->getX() && map[enemy2->getY()][enemy2->getX() - 1] == ' ')
-			enemy2->setX(enemy2->getX() - 1);
+		if (map[enemies[i]->getY()][enemies[i]->getX()] == '@')
+		{
+			--player->lives;
+			if (player->lives <= 0) {
+				exitFunc(0);
+			}
+		}
+		map[enemies[i]->getY()][enemies[i]->getX()] = 'o';
 	}
-	else if (abs(player->getX() - enemy2->getX()) < abs(player->getY() - enemy2->getY()))
-	{
-		if (player->getY() > enemy2->getY() && map[enemy2->getY() + 1][enemy2->getX()] == ' ')
-			enemy2->setY(enemy2->getY() + 1);
-		else if (player->getY() < enemy2->getY() && map[enemy2->getY() - 1][enemy2->getX()] == ' ')
-			enemy2->setY(enemy2->getY() - 1);
-	}
-
-	map[enemy1->getY()][enemy1->getX()] = 'o';
-	map[enemy2->getY()][enemy2->getX()] = 'o';
 
 }
 
@@ -135,21 +153,37 @@ int main(int argc, char const *argv[])
 	int	loop_counter = 0;
 
 	init();
-	map[enemy1->getY()][enemy1->getX()] = 'o';
-	map[enemy2->getY()][enemy2->getX()] = 'o';
 	map[player->getY()][player->getX()] = '@';
-	while (player->isAlive())
+	player->lives = 3;
+
+	for (int i = 0; i < amountEnemies; i++) {
+		enemies[i]->chooseDirection(player, map, '|', width, height);
+		map[enemies[i]->getY()][enemies[i]->getX()] = 'o';
+	}
+
+	while (player->lives > 0)
 	{
-		// if (loop_counter % 1000 == 0)
-		map[enemy1->getY()][enemy1->getX()] = 'o';
-		map[enemy2->getY()][enemy2->getX()] = 'o';
+		if (loop_counter % 5000 == 0)
 			moveEnemies();
 		movePlayer();
 		for (int i = 0; i < 17; i++)
 			mvprintw(LINES / 2 - 9 + i, COLS / 2 - 24, strdup(map[i].c_str()));
+
+		attron(COLOR_PAIR(3));
+		mvprintw(1, 1, "STARS : %d", stars);
+		mvprintw(LINES / 2 - 9 + player->getY(), COLS / 2 - 24 + player->getX(), "@");
+		mvprintw(2, 1, "LIVES : %d", player->lives);
+		attroff(COLOR_PAIR(3));
+
+		for (int i = 0; i < amountEnemies; i++) {
+			attron(COLOR_PAIR(2));
+			mvprintw(LINES / 2 - 9 + enemies[i]->getY(), COLS / 2 - 24 + enemies[i]->getX(), "o");
+			attroff(COLOR_PAIR(2));
+		}
 		refresh();
 		loop_counter++;
 	}
-	// nodelay(stdscr, false);
+	curs_set(1);
+	endwin();
 	return (0);
 }

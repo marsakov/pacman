@@ -1,15 +1,16 @@
 #ifndef ENTITY_HPP
 # define ENTITY_HPP
 
-#include <ncurses.h>
-#include <ctime>
 #include <iostream>
+#include <cmath>
 
 class Entity
 {
 	public:
 
-		Entity(int x, int y, unsigned int lives);
+		int lives;
+
+		Entity(int x, int y);
 		Entity(Entity const &ent);
 		~Entity(void);
 
@@ -17,15 +18,21 @@ class Entity
 		void			setY(int y);
 		int				getX(void) const;
 		int				getY(void) const;
+		int				getDirection(void) const;
 
-		int				isAlive(void) const;
+		int				moveLeft(std::string *map, char sep);
+		int				moveRight(std::string *map, char sep, int width);
+		int				moveUp(std::string *map, char sep);
+		int				moveDown(std::string *map, char sep, int height);
+		void			chooseDirection(Entity const *ent, std::string *map, char sep, int width, int height);
+
 
 		Entity			&operator=(Entity const &ent);
 
 	protected:
 		int				_x;
 		int				_y;
-		unsigned int	_lives;
+		char			_direction;
 
 };
 
