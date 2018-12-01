@@ -5,12 +5,14 @@
 
 ### Run:
 
-	If you havent NCurses Library, do this:
-	sudo apt-get install libncursesw5-dev
-
-
-
 	git clone https://github.com/marsakov/pacman.git
 	cd pacman
+
+Type the following apt-get command to install ncurses header and libs:
+	
+	sudo apt-get install libncurses5-dev libncursesw5-dev
+
+Run program:
+
 	make
 	./pacman
